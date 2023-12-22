@@ -1,0 +1,20 @@
+---
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.2.0
+    hooks:
+    - id: trailing-whitespace
+    - id: end-of-file-fixer
+    - id: check-yaml
+    - id: debug-statements
+    - id: double-quote-string-fixer
+    - id: requirements-txt-fixer
+    - id: no-commit-to-branch
+
+  - repo: https://github.com/dnephin/pre-commit-golang
+    rev: master
+    hooks:
+      - id: go-fmt
+      - id: go-vet
+      - id: go-mod-tidy
+      - id: go-build
