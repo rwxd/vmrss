@@ -4,7 +4,7 @@ A simple tool to show the memory usage of a process and its children.
 
 ## Usage
 
-### Continously monitor a process
+### Continuously monitor a process
 
 ```bash
 vmrss -m 26847
