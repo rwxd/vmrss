@@ -73,7 +73,7 @@ func printVmrss(mainPid int, processes []processOutput, children bool) {
 	for _, process := range processes {
 		if children || process.Pid == mainPid {
 			if *flagSwap {
-				fmt.Printf("%*s%s(%d): %.2f MB (%.2f MB swap)\n", process.Space, "", process.Name, process.Pid, process.Mem, process.Swap)
+				fmt.Printf("%*s%s(%d): %.2f MB | swap: %.2f MB\n", process.Space, "", process.Name, process.Pid, process.Mem, process.Swap)
 			} else {
 				fmt.Printf("%*s%s(%d): %.2f MB\n", process.Space, "", process.Name, process.Pid, process.Mem)
 			}
@@ -82,7 +82,7 @@ func printVmrss(mainPid int, processes []processOutput, children bool) {
 
 	total := getVmrssTotal(processes)
 	if *flagSwap {
-		fmt.Printf("Total: %.2f MB (%.2f MB swap)\n", total, getVmrssSwapTotal(processes))
+		fmt.Printf("Total: %.2f MB | swap: %.2f MB\n", total, getVmrssSwapTotal(processes))
 	} else {
 		fmt.Printf("Total: %.2f MB\n", total)
 	}

@@ -40,9 +40,9 @@ vmrss -m -c=false 26847
 
 ```bash
 vmrss -m -s 3840
-.kitty-wrapped(3840): 151.36 MB (0.00 MB swap)
-  zsh(3851): 12.50 MB (0.00 MB swap)
-    tmux: client(3992): 5.20 MB (0.00 MB swap)
-    zsh(3938): 9.28 MB (0.00 MB swap)
-Total: 178.33 MB (0.00 MB swap)
+.kitty-wrapped(3840): 151.36 MB | swap: 0.00 MB
+  zsh(3851): 12.50 MB | swap: 0.00 MB
+    tmux: client(3992): 5.20 MB | swap: 0.00 MB
+    zsh(3938): 9.28 MB | swap: 0.00 MB
+Total: 178.34 MB | swap: 0.00 MB
 ```
