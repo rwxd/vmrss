@@ -8,7 +8,6 @@ builds:
     ldflags:
       - "-s -w"
     goos:
-      - windows
       - linux
       - darwin
     goarch:
