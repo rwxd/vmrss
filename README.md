@@ -7,21 +7,18 @@ A simple tool to show the memory usage of a process and its children.
 ### Continuously monitor a process
 
 ```bash
-vmrss -m 26847
-python(26847): 43.85 MB
-  python(26849): 48.44 MB
-Total: 92.29 MB
+vmrss -m 3840
+.kitty-wrapped(3840): 151.23 MB
+  zsh(3851): 12.50 MB
+    tmux: client(3992): 5.20 MB
+    zsh(3938): 9.28 MB
+Total: 178.20 MB
 ```
 
 ### Set custom interval in milliseconds
 
 ```bash
 vmrss -m -i 2000 3840
-.kitty-wrapped(3840): 151.23 MB
-  zsh(3851): 12.50 MB
-    tmux: client(3992): 5.20 MB
-    zsh(3938): 9.28 MB
-Total: 178.20 MB
 ```
 
 ### Quit after a certain amount of time in seconds
