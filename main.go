@@ -34,6 +34,11 @@ func main() {
 		os.Exit(1)
 	}
 
+	if !processExists(pid) {
+		fmt.Println("Process does not exist")
+		os.Exit(1)
+	}
+
 	if *flagMonitor {
 		if *flagTime > 0 {
 			time.AfterFunc(time.Duration(*flagTime)*time.Second, func() {
@@ -64,9 +69,17 @@ type processOutput struct {
 	Swap float64
 }
 
+// processExists checks if a process exists.
+// We are not using os.FindProcess, because it will return a process even if it does not exist
 func processExists(pid int) bool {
-	_, err := os.FindProcess(pid)
-	return err == nil
+	cmd := exec.Command("ps", "-p", strconv.Itoa(pid))
+	cmd.Stderr = os.Stderr
+	out, err := cmd.Output()
+	if err != nil {
+		return false
+	}
+
+	return len(strings.Split(string(out), "\n")) > 2
 }
 
 func printVmrss(mainPid int, processes []processOutput, children bool) {
