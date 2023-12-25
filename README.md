@@ -2,6 +2,16 @@
 
 A simple tool to show the memory usage of a process and its children.
 
+## Install
+
+Get the latest binary from the [releases page](https://github.com/rwxd/vmrss/releases).
+
+Or install with go:
+
+```bash
+go get github.com/rwxd/vmrss
+```
+
 ## Usage
 
 ### Continuously monitor a process
