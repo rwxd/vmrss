@@ -12,6 +12,32 @@ Or install with go:
 go get github.com/rwxd/vmrss
 ```
 
+### NixOS / Nix
+
+Add to your `flake.nix`:
+
+```nix
+{
+  inputs.vmrss.url = "github:rwxd/vmrss";
+  # Or use a specific version:
+  # inputs.vmrss.url = "github:rwxd/vmrss/v1.0.0";
+}
+```
+
+Then use in your configuration:
+
+```nix
+environment.systemPackages = [ inputs.vmrss.packages.${system}.vmrss ];
+```
+
+Or run directly:
+
+```bash
+nix run github:rwxd/vmrss -- -m <pid>
+# Or use a specific version:
+# nix run github:rwxd/vmrss/v1.0.0 -- -m <pid>
+```
+
 ## Usage
 
 ### Continuously monitor a process
