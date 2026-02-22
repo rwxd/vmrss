@@ -5,7 +5,7 @@ Monitor memory usage of processes and their children.
 ## Requirements
 
 - Linux with `/proc` filesystem
-- `pgrep` command (usually from `procps` or `procps-ng` package)
+- `pgrep` command
 
 ## Install
 
