@@ -1,8 +1,6 @@
 {
     "$schema": "https://docs.renovatebot.com/renovate-schema.json",
     "extends": [
-        "local>rwxd/renovate-config",
-        "local>rwxd/renovate-config:automerge-minor",
-        "local>rwxd/renovate-config:automerge-patch"
+        "https://git.chaops.de/rwxd/renovate-config/raw/branch/main/standard.json"
     ]
 }
