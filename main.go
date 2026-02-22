@@ -19,6 +19,7 @@ var (
 	flagSwap     = flag.Bool("swap", false, "Show swap memory")
 	flagCPU      = flag.Bool("cpu", false, "Show CPU usage")
 	flagPeak     = flag.Bool("peak", false, "Show peak memory usage")
+	flagIO       = flag.Bool("io", false, "Show disk I/O rates")
 )
 
 func main() {
@@ -48,6 +49,8 @@ func main() {
 
 	peakMemory := make(map[int]float64)
 	peakTotal := make(map[int]float64)
+	lastIO := make(map[int][2]float64) // [readBytes, writeBytes]
+	lastIOTime := time.Now()
 
 	interval, err := time.ParseDuration(*flagInterval)
 	if err != nil {
@@ -66,22 +69,26 @@ func main() {
 				os.Exit(0)
 			})
 		}
+
 		for {
-			displayProcesses(pids, peakMemory, peakTotal)
+			now := time.Now()
+			elapsed := now.Sub(lastIOTime).Seconds()
+			displayProcesses(pids, peakMemory, peakTotal, lastIO, elapsed)
+			lastIOTime = now
 			fmt.Println()
 			time.Sleep(interval)
 		}
 	} else {
-		displayProcesses(pids, peakMemory, peakTotal)
+		displayProcesses(pids, peakMemory, peakTotal, lastIO, 0)
 	}
 }
 
-func displayProcesses(pids []int, peakMemory, peakTotal map[int]float64) {
+func displayProcesses(pids []int, peakMemory, peakTotal map[int]float64, lastIO map[int][2]float64, elapsed float64) {
 	for i, pid := range pids {
 		if i > 0 {
 			fmt.Println()
 		}
-		processes := getVmrss(pid, peakMemory)
+		processes := getVmrss(pid, peakMemory, lastIO, elapsed)
 		if len(processes) == 0 {
 			continue
 		}
@@ -94,13 +101,15 @@ func displayProcesses(pids []int, peakMemory, peakTotal map[int]float64) {
 }
 
 type processOutput struct {
-	Pid     int
-	Name    string
-	Space   int     // Indentation level
-	Mem     float64 // Memory in MB
-	Swap    float64 // Swap in MB
-	CPU     float64 // CPU usage percentage
-	PeakMem float64 // Peak memory in MB
+	Pid       int
+	Name      string
+	Space     int     // Indentation level
+	Mem       float64 // Memory in MB
+	Swap      float64 // Swap in MB
+	CPU       float64 // CPU usage percentage
+	PeakMem   float64 // Peak memory in MB
+	ReadRate  float64 // Disk read rate in KB/s
+	WriteRate float64 // Disk write rate in KB/s
 }
 
 // os.FindProcess returns a process even if it doesn't exist, so we check via /proc
@@ -129,12 +138,20 @@ func printVmrss(mainPid int, processes []processOutput, children bool, peakTotal
 		if children || process.Pid == mainPid {
 			output := fmt.Sprintf("%*s%s(%d): %.2f MB", process.Space, "", process.Name, process.Pid, process.Mem)
 
+			if *flagPeak && process.PeakMem > 0 {
+				output += fmt.Sprintf(" | peak: %.2f MB", process.PeakMem)
+			}
+
 			if *flagCPU {
 				output += fmt.Sprintf(" | cpu: %.1f%%", process.CPU)
 			}
 
-			if *flagPeak && process.PeakMem > 0 {
-				output += fmt.Sprintf(" | peak: %.2f MB", process.PeakMem)
+			if *flagIO {
+				if *flagMonitor {
+					output += fmt.Sprintf(" | io: r %.1f KB/s w %.1f KB/s", process.ReadRate, process.WriteRate)
+				} else {
+					output += fmt.Sprintf(" | io: r %.2f MB w %.2f MB", process.ReadRate/1024, process.WriteRate/1024)
+				}
 			}
 
 			if *flagSwap {
@@ -146,14 +163,23 @@ func printVmrss(mainPid int, processes []processOutput, children bool, peakTotal
 	}
 
 	total := getVmrssTotal(processes)
-	output := fmt.Sprintf("Total: %.2f MB", total)
+	output := fmt.Sprintf("total: %.2f MB", total)
+
+	if *flagPeak && peakTotal > 0 {
+		output += fmt.Sprintf(" | peak: %.2f MB", peakTotal)
+	}
 
 	if *flagCPU {
 		output += fmt.Sprintf(" | cpu: %.1f%%", getVmrssCPUTotal(processes))
 	}
 
-	if *flagPeak && peakTotal > 0 {
-		output += fmt.Sprintf(" | peak: %.2f MB", peakTotal)
+	if *flagIO {
+		totalRead, totalWrite := getVmrssIOTotal(processes)
+		if *flagMonitor {
+			output += fmt.Sprintf(" | io: r %.1f KB/s w %.1f KB/s", totalRead, totalWrite)
+		} else {
+			output += fmt.Sprintf(" | io: r %.2f MB w %.2f MB", totalRead/1024, totalWrite/1024)
+		}
 	}
 
 	if *flagSwap {
@@ -187,7 +213,16 @@ func getVmrssCPUTotal(processes []processOutput) float64 {
 	return total
 }
 
-func getVmrss(mainPid int, peakMemory map[int]float64) []processOutput {
+func getVmrssIOTotal(processes []processOutput) (float64, float64) {
+	var totalRead, totalWrite float64
+	for _, p := range processes {
+		totalRead += p.ReadRate
+		totalWrite += p.WriteRate
+	}
+	return totalRead, totalWrite
+}
+
+func getVmrss(mainPid int, peakMemory map[int]float64, lastIO map[int][2]float64, elapsed float64) []processOutput {
 	var outputs []processOutput
 	arr := []interface{}{mainPid, 0}
 
@@ -205,18 +240,25 @@ func getVmrss(mainPid int, peakMemory map[int]float64) []processOutput {
 		swap, _ := getProcessInfo(pid, "VmSwap:")
 		name, cpu := getProcessNameAndCPU(pid)
 
+		readRate, writeRate := 0.0, 0.0
+		if *flagIO {
+			readRate, writeRate = getProcessIORate(pid, lastIO, elapsed)
+		}
+
 		if mem > peakMemory[pid] {
 			peakMemory[pid] = mem
 		}
 
 		outputs = append(outputs, processOutput{
-			Pid:     pid,
-			Name:    name,
-			Space:   space,
-			Mem:     mem,
-			Swap:    swap,
-			CPU:     cpu,
-			PeakMem: peakMemory[pid],
+			Pid:       pid,
+			Name:      name,
+			Space:     space,
+			Mem:       mem,
+			Swap:      swap,
+			CPU:       cpu,
+			PeakMem:   peakMemory[pid],
+			ReadRate:  readRate,
+			WriteRate: writeRate,
 		})
 
 		for _, child := range getProcessChildren(pid) {
@@ -322,4 +364,48 @@ func getSystemUptime() (float64, error) {
 		return 0, fmt.Errorf("invalid uptime format")
 	}
 	return strconv.ParseFloat(fields[0], 64)
+}
+
+func getProcessIORate(pid int, lastIO map[int][2]float64, elapsed float64) (float64, float64) {
+	content, err := os.ReadFile(fmt.Sprintf("/proc/%d/io", pid))
+	if err != nil {
+		return 0, 0
+	}
+
+	var readBytes, writeBytes float64
+	for _, line := range strings.Split(string(content), "\n") {
+		fields := strings.Fields(line)
+		if len(fields) >= 2 {
+			val, _ := strconv.ParseFloat(fields[1], 64)
+			if fields[0] == "read_bytes:" {
+				readBytes = val
+			} else if fields[0] == "write_bytes:" {
+				writeBytes = val
+			}
+		}
+	}
+
+	if elapsed == 0 {
+		lastIO[pid] = [2]float64{readBytes, writeBytes}
+		return readBytes / 1024, writeBytes / 1024
+	}
+
+	last, exists := lastIO[pid]
+	lastIO[pid] = [2]float64{readBytes, writeBytes}
+
+	if !exists {
+		return 0, 0
+	}
+
+	readRate := (readBytes - last[0]) / elapsed / 1024
+	writeRate := (writeBytes - last[1]) / elapsed / 1024
+
+	if readRate < 0 {
+		readRate = 0
+	}
+	if writeRate < 0 {
+		writeRate = 0
+	}
+
+	return readRate, writeRate
 }

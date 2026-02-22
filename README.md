@@ -44,6 +44,7 @@ vmrss -m -cpu -peak firefox
 -cpu        Show CPU usage
 -peak       Show peak memory usage
 -swap       Show swap memory
+-io         Show disk I/O rates (KB/s)
 ```
 
 ## Examples
@@ -57,4 +58,7 @@ vmrss -c=false firefox
 
 # Monitor for 10 seconds with CPU and peak
 vmrss -m -t 10s -cpu -peak discord
+
+# Show disk I/O rates
+vmrss -m -io firefox
 ```
