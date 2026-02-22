@@ -1,59 +1,60 @@
 # vmrss
 
-A simple tool to show the memory usage of a process and its children.
+Monitor memory usage of processes and their children.
+
+## Requirements
+
+- Linux with `/proc` filesystem
+- `pgrep` command (usually from `procps` or `procps-ng` package)
 
 ## Install
 
-Get the latest binary from the [releases page](https://github.com/rwxd/vmrss/releases).
-
-Or install with go:
-
 ```bash
-go get github.com/rwxd/vmrss
+go install github.com/rwxd/vmrss@latest
 ```
 
-### NixOS / Nix
-
-Refer to https://github.com/rwxd/my-nixpkgs for the nix package.
+Or download from [releases](https://github.com/rwxd/vmrss/releases).
 
 ## Usage
 
-### Continuously monitor a process
-
 ```bash
-vmrss -m 3840
-.kitty-wrapped(3840): 151.23 MB
-  zsh(3851): 12.50 MB
-    tmux: client(3992): 5.20 MB
-    zsh(3938): 9.28 MB
-Total: 178.20 MB
+# By PID
+vmrss 1234
+
+# By name
+vmrss firefox
+
+# Multiple processes
+vmrss firefox discord
+
+# Monitor continuously
+vmrss -m firefox
+
+# With CPU and peak memory
+vmrss -m -cpu -peak firefox
 ```
 
-### Set custom interval in milliseconds
+## Options
 
-```bash
-vmrss -m -i 2000 3840
+```
+-m          Monitor continuously (default: single snapshot)
+-i          Interval (default: 1s, examples: 500ms, 2s, 1m)
+-t          Quit after duration (examples: 5s, 1m, 30s)
+-c          Show child processes (default: true)
+-cpu        Show CPU usage
+-peak       Show peak memory usage
+-swap       Show swap memory
 ```
 
-### Quit after a certain amount of time in seconds
+## Examples
 
 ```bash
-vmrss -m -t 10 26847
-```
+# Monitor with 500ms interval
+vmrss -m -i 500ms firefox
 
-### Do not show children
+# Show only parent process
+vmrss -c=false firefox
 
-```bash
-vmrss -m -c=false 26847
-```
-
-### Show swapped memory
-
-```bash
-vmrss -m -s 3840
-.kitty-wrapped(3840): 151.36 MB | swap: 0.00 MB
-  zsh(3851): 12.50 MB | swap: 0.00 MB
-    tmux: client(3992): 5.20 MB | swap: 0.00 MB
-    zsh(3938): 9.28 MB | swap: 0.00 MB
-Total: 178.34 MB | swap: 0.00 MB
+# Monitor for 10 seconds with CPU and peak
+vmrss -m -t 10s -cpu -peak discord
 ```
