@@ -1,3 +1,3 @@
 module github.com/rwxd/vmrss
 
-go 1.25
+go 1.26

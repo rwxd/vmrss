@@ -224,7 +224,7 @@ func getVmrssIOTotal(processes []processOutput) (float64, float64) {
 
 func getVmrss(mainPid int, peakMemory map[int]float64, lastIO map[int][2]float64, elapsed float64) []processOutput {
 	var outputs []processOutput
-	arr := []interface{}{mainPid, 0}
+	arr := []any{mainPid, 0}
 
 	for len(arr) > 0 {
 		space := arr[len(arr)-1].(int)
@@ -311,7 +311,7 @@ func getProcessChildren(pid int) []int {
 	}
 
 	var children []int
-	for _, line := range strings.Split(strings.TrimSpace(string(output)), "\n") {
+	for line := range strings.SplitSeq(strings.TrimSpace(string(output)), "\n") {
 		if child, err := strconv.Atoi(line); err == nil {
 			children = append(children, child)
 		}
@@ -327,7 +327,7 @@ func findProcessByName(name string) ([]int, error) {
 	}
 
 	var pids []int
-	for _, line := range strings.Split(strings.TrimSpace(string(output)), "\n") {
+	for line := range strings.SplitSeq(strings.TrimSpace(string(output)), "\n") {
 		if line != "" {
 			if pid, err := strconv.Atoi(line); err == nil {
 				pids = append(pids, pid)
@@ -373,7 +373,7 @@ func getProcessIORate(pid int, lastIO map[int][2]float64, elapsed float64) (floa
 	}
 
 	var readBytes, writeBytes float64
-	for _, line := range strings.Split(string(content), "\n") {
+	for line := range strings.SplitSeq(string(content), "\n") {
 		fields := strings.Fields(line)
 		if len(fields) >= 2 {
 			val, _ := strconv.ParseFloat(fields[1], 64)
