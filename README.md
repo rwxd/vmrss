@@ -45,6 +45,7 @@ vmrss -m -cpu -peak firefox
 -peak       Show peak memory usage
 -swap       Show swap memory
 -io         Show disk I/O rates (KB/s)
+-format     Output format (json)
 ```
 
 ## Examples
@@ -61,4 +62,7 @@ vmrss -m -t 10s -cpu -peak discord
 
 # Show disk I/O rates
 vmrss -m -io firefox
+
+# JSON output
+vmrss -format json firefox
 ```

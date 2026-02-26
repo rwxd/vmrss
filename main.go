@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	"encoding/json"
 	"flag"
 	"fmt"
 	"os"
@@ -20,6 +21,7 @@ var (
 	flagCPU      = flag.Bool("cpu", false, "Show CPU usage")
 	flagPeak     = flag.Bool("peak", false, "Show peak memory usage")
 	flagIO       = flag.Bool("io", false, "Show disk I/O rates")
+	flagFormat   = flag.String("format", "", "Output format (json)")
 )
 
 func main() {
@@ -84,6 +86,70 @@ func main() {
 }
 
 func displayProcesses(pids []int, peakMemory, peakTotal map[int]float64, lastIO map[int][2]float64, elapsed float64) {
+	if *flagFormat == "json" {
+		var result []map[string]any
+		for _, pid := range pids {
+			processes := getVmrss(pid, peakMemory, lastIO, elapsed)
+			if len(processes) == 0 {
+				continue
+			}
+			currentTotal := getVmrssTotal(processes)
+			if currentTotal > peakTotal[pid] {
+				peakTotal[pid] = currentTotal
+			}
+
+			var procs []map[string]any
+			for _, p := range processes {
+				if *flagChild || p.Pid == pid {
+					proc := map[string]any{"pid": p.Pid, "name": p.Name, "memory_mb": p.Mem}
+					if *flagPeak && p.PeakMem > 0 {
+						proc["peak_memory_mb"] = p.PeakMem
+					}
+					if *flagCPU {
+						proc["cpu_percent"] = p.CPU
+					}
+					if *flagIO {
+						if *flagMonitor {
+							proc["read_kb_per_sec"] = p.ReadRate
+							proc["write_kb_per_sec"] = p.WriteRate
+						} else {
+							proc["read_mb"] = p.ReadRate / 1024
+							proc["write_mb"] = p.WriteRate / 1024
+						}
+					}
+					if *flagSwap {
+						proc["swap_mb"] = p.Swap
+					}
+					procs = append(procs, proc)
+				}
+			}
+
+			entry := map[string]any{"main_pid": pid, "processes": procs, "total_memory_mb": currentTotal}
+			if *flagPeak && peakTotal[pid] > 0 {
+				entry["peak_total_mb"] = peakTotal[pid]
+			}
+			if *flagCPU {
+				entry["total_cpu_percent"] = getVmrssCPUTotal(processes)
+			}
+			if *flagIO {
+				totalRead, totalWrite := getVmrssIOTotal(processes)
+				if *flagMonitor {
+					entry["total_read_kb_per_sec"] = totalRead
+					entry["total_write_kb_per_sec"] = totalWrite
+				} else {
+					entry["total_read_mb"] = totalRead / 1024
+					entry["total_write_mb"] = totalWrite / 1024
+				}
+			}
+			if *flagSwap {
+				entry["total_swap_mb"] = getVmrssSwapTotal(processes)
+			}
+			result = append(result, entry)
+		}
+		json.NewEncoder(os.Stdout).Encode(result)
+		return
+	}
+
 	for i, pid := range pids {
 		if i > 0 {
 			fmt.Println()
