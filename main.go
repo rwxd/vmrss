@@ -25,13 +25,18 @@ var (
 )
 
 func main() {
+	flag.Usage = func() {
+		fmt.Println("Usage: vmrss [options] <pid|name> [<pid|name>...]")
+		fmt.Println("Options:")
+		flag.PrintDefaults()
+	}
 	flag.Parse()
 	args := flag.Args()
 
 	var pids []int
 
 	if len(args) == 0 {
-		fmt.Println("Usage: vmrss [options] <pid|name> [<pid|name>...]")
+		flag.Usage()
 		os.Exit(1)
 	}
 
